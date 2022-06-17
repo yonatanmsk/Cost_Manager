@@ -1,5 +1,6 @@
 const router = require('express').Router();
 let Cost = require('../models/cost.model');
+let Computes = require('../models/compute.model');
 
 router.route('/').get((req, res) => {
   Cost.find()
@@ -10,7 +11,7 @@ router.route('/').get((req, res) => {
 router.route('/add').post((req, res) => {
   const cost_id = req.body.cost_id;
   const username = req.body.username;
-  const user_id = req.body.user_id;
+  const userid = req.body.userid;
   const description = req.body.description;
   const category = req.body.category;
   const sum = Number(req.body.sum);
@@ -20,7 +21,7 @@ router.route('/add').post((req, res) => {
   const newCost = new Cost({
     cost_id,
     username,
-    user_id,
+    userid,
     description,
     category,
     sum,
@@ -51,10 +52,47 @@ router.route('/months/:month').get((req, res) => {
       .catch(err => res.status(400).json('Error: ' + err));
   });
 
+let tempCost = [];
+let computeSum;
+
 router.route('/year/:year/month/:month').get((req, res) => {
+
 Cost.find({'year' : req.params.year, 'month' : req.params.month})
-    .then(cost => res.json(cost))
-    .catch(err => res.status(400).json('Error: ' + err));
+.then(cost => tempCost = cost).then(cost => res.json(cost))
+.catch(err => res.status(400).json('Error: ' + err));
+
+Computes.findOne({'year' : req.params.year, 'month' : req.params.month})
+.then(computes => {
+  
+})
+.catch(err => res.status(400).json('Error: ' + err));
+
+if(computeSum === null)
+{
+   let sums = 0;
+   tempCost.forEach(cost => sums+= cost.sum);
+   
+   const sum = sums;
+   const year = req.params.year;
+   const month = req.params.month;
+
+  const newComputes = new Computes({
+    sum,
+    year,
+    month
+  });
+
+  newComputes.save();
+}
+
+const data = {tempCost, computeSum};
+
+// res.setHeader("Content-Type", "application/json");
+// res.json(data)
+// res.end(JSON.stringify({a:JSON.stringify(data[0])}));
+// console.log(data[1]);
+//res.json({cost:JSON.stringify(tempCost), computes:JSON.stringify(computeSum)});
+
 });
 
 router.route('/username/:username/year/:year/month/:month').get((req, res) => {
@@ -105,5 +143,7 @@ router.route('/update/:id').post((req, res) => {
     })
     .catch(err => res.status(400).json('Error: ' + err));
 });
+
+
 
 module.exports = router;
