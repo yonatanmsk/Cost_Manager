@@ -1,6 +1,9 @@
 const router = require('express').Router();
 let Cost = require('../models/cost.model');
 let Computes = require('../models/compute.model');
+const { v4: uuidv4 } = require('uuid');
+let tempCost = [];
+let computeSum;
 
 router.route('/').get((req, res) => {
   Cost.find()
@@ -9,7 +12,7 @@ router.route('/').get((req, res) => {
 });
 
 router.route('/add').post((req, res) => {
-  const cost_id = req.body.cost_id;
+  const cost_id = uuidv4();
   const username = req.body.username;
   const userid = req.body.userid;
   const description = req.body.description;
@@ -32,6 +35,20 @@ router.route('/add').post((req, res) => {
   newCost.save()
   .then(() => res.json('Cost added!'))
   .catch(err => res.status(400).json('Error: ' + err));
+
+  Computes.findOne({'year' : year, 'month' : month})
+  .then(computes => computes.sum += sum)
+  .catch(err => res.status(400).json('Error: ' + err));
+
+  console.log(year);
+  console.log(month);
+  console.log(sum);
+  console.log(computeSum);
+
+  /*if(computeSum !== null)
+  {
+    computeSum.sum += sum;
+  }*/
 });
 
 router.route('/:id').get((req, res) => {
@@ -41,24 +58,42 @@ router.route('/:id').get((req, res) => {
 });
 
 router.route('/years/:year').get((req, res) => {
+
   Cost.find({'year' : req.params.year})
-    .then(cost => res.json(cost))
+    .then(cost => tempCost = cost)
     .catch(err => res.status(400).json('Error: ' + err));
+  
+  Computes.findOne({'year' : req.params.year, 'month' : 'All'})
+  .then(computes => computeSum = computes)
+  .catch(err => res.status(400).json('Error: ' + err));
+  
+  if(computeSum === null)
+  {
+      let sums = 0;
+      tempCost.forEach(cost => sums += cost.sum);
+      
+      const sum = sums;
+      const year = req.params.year;
+      const month = 'All';
+  
+    const newComputes = new Computes({
+      sum,
+      year,
+      month
+    });
+  
+    newComputes.save();
+  }
+  
+  const data = {tempCost, computeSum};
+  
+  res.json(data);
 });
-
-router.route('/months/:month').get((req, res) => {
-    Cost.find({'month' : req.params.month})
-      .then(cost => res.json(cost))
-      .catch(err => res.status(400).json('Error: ' + err));
-  });
-
-let tempCost = [];
-let computeSum;
 
 router.route('/year/:year/month/:month').get((req, res) => {
 
 Cost.find({'year' : req.params.year, 'month' : req.params.month})
-.then(cost => tempCost = cost)/* .then(cost => res.json(cost))*/
+.then(cost => tempCost = cost)
 .catch(err => res.status(400).json('Error: ' + err));
 
 Computes.findOne({'year' : req.params.year, 'month' : req.params.month})
@@ -68,7 +103,7 @@ Computes.findOne({'year' : req.params.year, 'month' : req.params.month})
 if(computeSum === null)
 {
    let sums = 0;
-   tempCost.forEach(cost => sums+= cost.sum);
+   tempCost.forEach(cost => sums += cost.sum);
    
    const sum = sums;
    const year = req.params.year;
@@ -83,16 +118,9 @@ if(computeSum === null)
   newComputes.save();
 }
 
-const data = [tempCost, computeSum];
+const data = {tempCost, computeSum};
 
 res.json(data);
-// res.json(computeSum);
-
-// res.setHeader("Content-Type", "application/json");
-// res.end(JSON.stringify({a:JSON.stringify(data[0])}));
-//console.log(data[1]);
-//res.json({cost:JSON.stringify(tempCost), computes:JSON.stringify(computeSum)});
-
 });
 
 router.route('/username/:username/year/:year/month/:month').get((req, res) => {
@@ -103,12 +131,6 @@ router.route('/username/:username/year/:year/month/:month').get((req, res) => {
 
 router.route('/username/:username/year/:year').get((req, res) => {
     Cost.find({'username' : req.params.username, 'year' : req.params.year})
-        .then(cost => res.json(cost))
-        .catch(err => res.status(400).json('Error: ' + err));
-    });
-
-router.route('/username/:username/month/:month').get((req, res) => {
-    Cost.find({'username' : req.params.username, 'month' : req.params.month})
         .then(cost => res.json(cost))
         .catch(err => res.status(400).json('Error: ' + err));
     });
