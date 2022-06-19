@@ -8,13 +8,13 @@ router.route('/').get((req, res) => {
 });
 
 router.route('/add').post((req, res) => {
-  //const userid = req.body.userid;
+  const userid = req.body.userid;
   const sum = Number(req.body.sum);
   const year = req.body.year;
   const month = req.body.month;
 
   const newComputes = new Computes({
-    //userid,
+    userid,
     sum,
     year,
     month
